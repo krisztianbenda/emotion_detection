@@ -1,2 +1,6 @@
 *.DS_Store
 *~$*.docx
+.ipynb_checkpoints/
+
+images/
+videos/
