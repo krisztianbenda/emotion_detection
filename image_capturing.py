@@ -40,7 +40,13 @@ def do_capturing(videos_path, images_path):
             if not success:
                 print("ERROR: can't read frame: " + str(capturing_frame) + " frame count: " + str(frame_count))
 
-            image_name = video.split('.avi')[0] + '_' + str(int(capturing_frame)) + '.jpg'
+            if capturing_frame < 10:
+                frame_name = '00' + str(int(capturing_frame))
+            elif capturing_frame < 100:
+                frame_name = '0' + str(int(capturing_frame))
+            else:
+                frame_name = str(int(capturing_frame))
+            image_name = video.split('.avi')[0] + '_' + frame_name + '.jpg'
             print("Capturing image: " + image_name)
             cv2.imwrite(path.join(images_path, image_name), image)
 
