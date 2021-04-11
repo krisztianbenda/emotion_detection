@@ -35,6 +35,8 @@ def data_extraction(images_path):
             warned = False
             new_frame = image.split('_')[1].split('.')[0]
             new_landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
+            if len(landmarks) == 0:
+                landmarks = new_landmarks
             for gathered_landmark in gathered_landmarks:
                 for idx, point in enumerate(landmarks[0][gathered_landmark]):
                     try:
@@ -69,11 +71,11 @@ def data_extraction(images_path):
         else:
             if len(data) != 0:
                 df = append_to_df(data, columns, df)
+            landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
             person = image.split('_')[0]
             frame = image.split('_')[1].split('.')[0]
             frame_count = 0
             print(person, frame)
-            landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
             data = [person]
             columns = ['video']
             
