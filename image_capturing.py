@@ -8,7 +8,7 @@ train_videos_path = "./videos/train"
 train_images_path = "./images/train"
 test_videos_path = "./videos/test"
 test_images_path = "./images/test"
-capture_per_video = 4
+capture_per_video = 12
 
 
 def create_dir(frame_dir):
