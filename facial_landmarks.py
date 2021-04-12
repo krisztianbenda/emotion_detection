@@ -21,6 +21,38 @@ def append_to_df(data, columns, df):
     df = df.append(pd.DataFrame([data], columns=columns), ignore_index=True)
     return df
 
+def generate_empty_landmark():
+    return [
+        {
+            'chin': [(0,0)],
+            'left_eyebrow': [(0,0), (0,0)],
+            'right_eyebrow': [(0,0), (0,0)],
+            'nose_bridge': [(0,0)],
+            'nose_tip': [(0,0)],
+            'left_eye': [(0,0)],
+            'right_eye': [(0,0)],
+            'top_lip': [(0,0), (0,0)],
+            'bottom_lip': [(0,0), (0,0)],
+        }
+    ]
+
+def get_landmarks(image):
+    marks = fr.face_landmarks(fr.load_image_file(image))
+    try:
+        marks[0]['chin'] = [marks[0]['chin'][8]] # only the middle point
+        marks[0]['left_eyebrow'] = [marks[0]['left_eyebrow'][0], marks[0]['left_eyebrow'][-1]] # first and last point
+        marks[0]['right_eyebrow'] = [marks[0]['right_eyebrow'][0], marks[0]['right_eyebrow'][-1]] # first and last point
+        marks[0]['nose_bridge'] = [marks[0]['nose_bridge'][0]] # first
+        marks[0]['nose_tip'] = [marks[0]['nose_tip'][2]] # middle
+        marks[0]['left_eye'] = [marks[0]['left_eye'][0]]
+        marks[0]['right_eye'] = [marks[0]['right_eye'][0]]
+        marks[0]['top_lip'] = [marks[0]['top_lip'][0], marks[0]['top_lip'][-1]]
+        marks[0]['bottom_lip'] = [marks[0]['bottom_lip'][0], marks[0]['bottom_lip'][-1]]
+        return marks
+    except:
+        print("WARN: There is no landmarks as expected: ", marks)
+        return []
+
 
 def data_extraction(images_path):
     person = ""
@@ -34,7 +66,7 @@ def data_extraction(images_path):
         if person == image.split('_')[0]:
             warned = False
             new_frame = image.split('_')[1].split('.')[0]
-            new_landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
+            new_landmarks = get_landmarks(path.join(images_path, image))
             if len(landmarks) == 0:
                 landmarks = new_landmarks
             for gathered_landmark in gathered_landmarks:
@@ -49,21 +81,28 @@ def data_extraction(images_path):
                         distanceX = point[0] - new_landmarks[0][gathered_landmark][idx][0]
                         distanceY = point[1] - new_landmarks[0][gathered_landmark][idx][1]
                     
-                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'X')
-                        data.append(distanceX)
+                        # columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'X')
+                        # data.append(distanceX)
 
-                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'Y')
-                        data.append(distanceY)
+                        # columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'Y')
+                        # data.append(distanceY)
+                        
+                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx))
+                        data.append(abs(distanceX) + abs(distanceY))
+
                     except:
                         if not warned:
                             print(" WARN: can't find the proper landmarks for image: " + image)
                             print(" WARN: found landmarks: ", new_landmarks)
                             print(" WARN: searching for: " + gathered_landmark)
                             warned = True
-                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'X')
-                        data.append(0)
-                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'Y')
-                        data.append(0)
+                        # columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'X')
+                        # data.append(0)
+                        # columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'Y')
+                        # data.append(0)
+
+                        columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx))
+                        data.append(abs(distanceX) + abs(distanceY))
                         
             landmarks = new_landmarks
             frame = new_frame
@@ -71,14 +110,17 @@ def data_extraction(images_path):
         else:
             if len(data) != 0:
                 df = append_to_df(data, columns, df)
-            landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
+            landmarks = get_landmarks(path.join(images_path, image))
+            if len(landmarks) == 0:
+                print("ERROR: cannot established the first image's landmarks")
+                landmarks = generate_empty_landmark()
             person = image.split('_')[0]
             frame = image.split('_')[1].split('.')[0]
             frame_count = 0
             print(person, frame)
             data = [person]
             columns = ['video']
-            
+
     df = append_to_df(data, columns, df)
     return df
 
@@ -89,7 +131,7 @@ if __name__ == '__main__':
         if not path.isdir(path.join(train_images_path, emotion)):
             continue
         print("===================")
-        print("Processing emotion: " + emotion)
+        print("Processing emotion: " + emotion + " on path: " + train_images_path)
 
         df = df.append(data_extraction(path.join(train_images_path, emotion)), ignore_index=True)
         
