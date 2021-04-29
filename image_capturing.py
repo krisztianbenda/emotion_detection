@@ -1,4 +1,4 @@
-from os import listdir, path, getcwd, mkdir
+from os import listdir, path, getcwd, mkdir, environ
 import shutil
 import cv2
 
@@ -8,7 +8,7 @@ train_videos_path = "./videos/train"
 train_images_path = "./images/train"
 test_videos_path = "./videos/test"
 test_images_path = "./images/test"
-capture_per_video = 12
+capture_per_video = int(environ['CAPTURE_PER_VIDEO'])
 
 
 def create_dir(frame_dir):
@@ -32,7 +32,7 @@ def get_face(image):
         # cv2.rectangle(image, (x, y), (x+w, y+h), 
         #             (0, 0, 255), 2)
         
-        image = image[y-15:y + h+15, x-15:x + w+15]
+        image = image[y-0:y + h+0, x-0:x + w+0]
         # cv2.imshow("face",faces)
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image, w, h
@@ -46,11 +46,16 @@ def do_capturing(videos_path, images_path):
         
         vidcap = cv2.VideoCapture(path.join(videos_path, video))
         frame_count = vidcap.get(cv2.CAP_PROP_FRAME_COUNT)
-        print("File: {}, frame count: {}".format(video, frame_count))
+        # at the first 20% of the video there is no action so it could be cut off
+        useless_first_frames = int(frame_count * 0.2) + 1
+        frame_count -= useless_first_frames
+
+        print("File: {}, total frame count: {}, starting frame: {}".format(video, frame_count+useless_first_frames, frame_count))
         help_number = 0
 
         for capture in range(0, capture_per_video):
             capturing_frame = int(frame_count / (capture_per_video + 1)) * (capture + 1) + help_number
+            capturing_frame += useless_first_frames # add the first useless frames to place it appropriatly
             if capturing_frame >= frame_count:
                 capturing_frame = frame_count - 1
 
@@ -66,6 +71,7 @@ def do_capturing(videos_path, images_path):
             else:
                 frame_name = str(int(capturing_frame))
             image_name = video.split('.avi')[0] + '_' + frame_name + '.jpg'
+
             image, width, height = get_face(image)
             if image is None:
                 print("WARN: Cannot find face. Help will be added. help_number={}, capture={}".format(help_number, capture))
@@ -75,7 +81,8 @@ def do_capturing(videos_path, images_path):
             else:
                 help_number = 0
             print("Capturing image: {} with size: ({},{})".format(image_name, width, height))
-            image = cv2.resize(image, (300, 300), interpolation = cv2.INTER_AREA)
+            image = cv2.resize(image, (96, 96), interpolation = cv2.INTER_AREA)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(path.join(images_path, image_name), image)
 
 
