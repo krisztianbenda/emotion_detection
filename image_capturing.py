@@ -32,7 +32,7 @@ def get_face(image):
         # cv2.rectangle(image, (x, y), (x+w, y+h), 
         #             (0, 0, 255), 2)
         
-        image = image[y-0:y + h+0, x-0:x + w+0]
+        image = image[y-15:y + h+15, x-15:x + w+15]
         # cv2.imshow("face",faces)
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image, w, h
@@ -46,18 +46,19 @@ def do_capturing(videos_path, images_path):
         
         vidcap = cv2.VideoCapture(path.join(videos_path, video))
         frame_count = vidcap.get(cv2.CAP_PROP_FRAME_COUNT)
-        # at the first 20% of the video there is no action so it could be cut off
-        useless_first_frames = int(frame_count * 0.2) + 1
-        frame_count -= useless_first_frames
+        # at the first 40% of the video there is no action so it could be cut off
+        useless_first_frames = int(frame_count * 0.4) + 1
 
-        print("File: {}, total frame count: {}, starting frame: {}".format(video, frame_count+useless_first_frames, frame_count))
+        print(f"File: {video}, total frame count: {frame_count}, starting from frame: {useless_first_frames}")
         help_number = 0
 
         for capture in range(0, capture_per_video):
-            capturing_frame = int(frame_count / (capture_per_video + 1)) * (capture + 1) + help_number
+            capturing_frame = int((frame_count-useless_first_frames) / (capture_per_video + 1)) * (capture + 1) + help_number
             capturing_frame += useless_first_frames # add the first useless frames to place it appropriatly
             if capturing_frame >= frame_count:
+                print(f"Captureing frame: {capturing_frame} would be higher then total frame count: {frame_count}")
                 capturing_frame = frame_count - 1
+                print(f"New capturing frame will be: {capturing_frame}")
 
             vidcap.set(cv2.CAP_PROP_POS_FRAMES, capturing_frame)
             success, image = vidcap.read()
@@ -81,7 +82,7 @@ def do_capturing(videos_path, images_path):
             else:
                 help_number = 0
             print("Capturing image: {} with size: ({},{})".format(image_name, width, height))
-            image = cv2.resize(image, (96, 96), interpolation = cv2.INTER_AREA)
+            image = cv2.resize(image, (48, 48), interpolation = cv2.INTER_AREA)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(path.join(images_path, image_name), image)
 
