@@ -32,7 +32,7 @@ def get_face(image):
         # cv2.rectangle(image, (x, y), (x+w, y+h), 
         #             (0, 0, 255), 2)
         
-        image = image[y-15:y + h+15, x-15:x + w+15]
+        image = image[y-0:y + h+0, x-0:x + w+0]
         # cv2.imshow("face",faces)
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image, w, h
