@@ -8,6 +8,7 @@ test_images_path = "./images/test"
 gathered_landmarks = ['chin', 'left_eyebrow', 'right_eyebrow', 'nose_bridge', 'nose_tip', 'left_eye', 'right_eye',
                      'top_lip', 'bottom_lip']
 emotions = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
+emotions_map = {'Anger': 0, 'Disgust':1, 'Fear':2, 'Happiness':3, 'Sadness':4, 'Surprise':5}
 
 
 def append_to_df(data, columns, df):
@@ -18,8 +19,57 @@ def append_to_df(data, columns, df):
                 data.append(1)
             else:
                 data.append(0)
+        columns.append('emotion')
+        if 'Anger' in data[0]:
+            data.append(0)
+        elif 'Disgust' in data[0]:
+            data.append(1)
+        elif 'Fear' in data[0]:
+            data.append(2)
+        elif 'Happiness' in data[0]:
+            data.append(3)
+        elif 'Sadness' in data[0]:
+            data.append(4)
+        elif 'Surprise' in data[0]:
+            data.append(5)
     df = df.append(pd.DataFrame([data], columns=columns), ignore_index=True)
     return df
+
+
+def generate_empty_landmark():
+    return [
+        {
+            'chin': [(0,0)],
+            'left_eyebrow': [(0,0), (0,0)],
+            'right_eyebrow': [(0,0), (0,0)],
+            'nose_bridge': [(0,0)],
+            'nose_tip': [(0,0)],
+            'left_eye': [(0,0)],
+            'right_eye': [(0,0)],
+            'top_lip': [(0,0), (0,0)],
+            'bottom_lip': [(0,0), (0,0)],
+        }
+    ]
+
+
+def get_landmarks(image):
+    marks = fr.face_landmarks(fr.load_image_file(image))
+    try:
+        # marks[0]['chin'] = [marks[0]['chin'][8]] # only the middle point
+        marks[0]['chin'] = []
+        marks[0]['left_eyebrow'] = [marks[0]['left_eyebrow'][0], marks[0]['left_eyebrow'][-1]] # first and last point
+        marks[0]['right_eyebrow'] = [marks[0]['right_eyebrow'][0], marks[0]['right_eyebrow'][-1]] # first and last point
+        # marks[0]['nose_bridge'] = [marks[0]['nose_bridge'][0]] # first
+        marks[0]['nose_bridge'] = []
+        marks[0]['nose_tip'] = [marks[0]['nose_tip'][2]] # middle
+        marks[0]['left_eye'] = [marks[0]['left_eye'][0]]
+        marks[0]['right_eye'] = [marks[0]['right_eye'][0]]
+        marks[0]['top_lip'] = [marks[0]['top_lip'][0], marks[0]['top_lip'][-1]]
+        marks[0]['bottom_lip'] = [marks[0]['bottom_lip'][0], marks[0]['bottom_lip'][-1]]
+        return marks
+    except:
+        print("WARN: There is no landmarks as expected: ", marks)
+        return []
 
 
 def data_extraction(images_path):
@@ -34,8 +84,15 @@ def data_extraction(images_path):
         if person == image.split('_')[0]:
             warned = False
             new_frame = image.split('_')[1].split('.')[0]
-            new_landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
-            if len(landmarks) == 0:
+            new_landmarks = get_landmarks(path.join(images_path, image))
+            if len(new_landmarks) == 0 and len(landmarks) == 0:
+                columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'X')
+                data.append(0)
+                columns.append(str(frame_count) + '-' + str(frame_count+1) + '_' + gathered_landmark + str(idx) + 'Y')
+                data.append(0)
+            elif len(new_landmarks) == 0:
+                new_landmarks = landmarks
+            elif len(landmarks) == 0:
                 landmarks = new_landmarks
             for gathered_landmark in gathered_landmarks:
                 for idx, point in enumerate(landmarks[0][gathered_landmark]):
@@ -71,7 +128,11 @@ def data_extraction(images_path):
         else:
             if len(data) != 0:
                 df = append_to_df(data, columns, df)
-            landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
+            # landmarks = fr.face_landmarks(fr.load_image_file(path.join(images_path, image)))
+            landmarks = get_landmarks(path.join(images_path, image))
+            if len(landmarks) == 0:
+                print("ERROR: cannot established the first image's landmarks")
+                landmarks = generate_empty_landmark()
             person = image.split('_')[0]
             frame = image.split('_')[1].split('.')[0]
             frame_count = 0
